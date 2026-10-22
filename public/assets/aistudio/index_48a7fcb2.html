@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Angle Lab – قياس الزوايا</title>
+<meta name="theme-color" content="#101820">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Angle Lab">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#e9edf0;--bar:#ffffff;--fg:#14202b;--mut:#5b6b79;--ac:#0a7c86;--acf:#fff;--bd:#cdd6dd;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1319;--bar:#17212b;--fg:#e8eef3;--mut:#8fa1b0;--ac:#35c4d0;--acf:#06232a;--bd:#2a3846;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d1319;--bar:#17212b;--fg:#e8eef3;--mut:#8fa1b0;--ac:#35c4d0;--acf:#06232a;--bd:#2a3846;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;overflow:hidden}
+header,nav{background:var(--bar);display:flex;gap:6px;padding:6px 8px;align-items:center;border-color:var(--bd);border-style:solid;border-width:0}
+header{border-bottom-width:1px;flex-wrap:wrap}nav{border-top-width:1px;overflow-x:auto}
+button{font:inherit;color:var(--fg);background:transparent;border:1px solid var(--bd);border-radius:8px;min-width:42px;height:40px;padding:0 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;flex:0 0 auto}
+button small{font-size:10px;color:var(--mut)}
+button.on{background:var(--ac);color:var(--acf);border-color:var(--ac)}button.on small{color:var(--acf)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+#hint{flex:1 0 100%;order:9;color:var(--mut);font-size:12px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+main{flex:1;position:relative;min-height:0}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+#addMenu{position:absolute;inset-inline:0;bottom:0;display:none;gap:8px;justify-content:center;padding:10px;background:var(--bar);border-top:1px solid var(--bd);z-index:5}#addMenu button{min-width:100px;height:54px;font-weight:700}
+#panel{position:absolute;inset-inline:0;bottom:0;max-height:55%;overflow:auto;background:var(--bar);border-top:1px solid var(--bd);padding:10px 12px;display:none}
+#panel.open{display:block}
+.row{display:flex;align-items:center;gap:10px;margin:6px 0}.row label{width:86px;flex:0 0 auto;color:var(--mut)}
+.row input[type=range]{flex:1;accent-color:var(--ac)}.row output{width:44px;text-align:end;font-variant-numeric:tabular-nums}
+select{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:8px;padding:6px}
+#list div{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border:1px solid var(--bd);border-radius:8px;margin:4px 0}
+#list div.s{border-color:var(--ac)}#list b{direction:ltr;font-variant-numeric:tabular-nums}
+</style></head><body>
+<header>
+<button id="bOpen" title="رفع صورة">📂<small>صورة</small></button>
+<button id="bCam">📷<small>كاميرا</small></button>
+<button id="bUndo">↶<small>تراجع</small></button>
+<button id="bDel">🗑<small>حذف</small></button>
+<button id="bSave">💾<small>حفظ</small></button>
+<button id="bPanel">⚙<small>ضبط</small></button>
+<button id="bInst" style="display:none">⬇<small>تثبيت</small></button>
+<span id="hint"></span>
+<input id="f" type="file" accept="image/*" multiple hidden>
+<input id="fc" type="file" accept="image/*" capture="environment" hidden>
+</header>
+<main><canvas id="c"></canvas>
+<div id="addMenu"><button data-t="V">V<small>زاوية (3 نقاط)</small></button><button data-t="W">W<small>زاويتان (4 نقاط)</small></button><button data-t="X">X<small>خطان (4 نقاط)</small></button></div>
+<section id="panel">
+<div class="row"><label>دوران القطعة</label><input type="range" id="rot" min="-180" max="180" value="0"><output id="rotO">0°</output></div>
+<div class="row"><label>السطوع</label><input type="range" id="br" min="30" max="250" value="100"><output id="brO">100</output></div>
+<div class="row"><label>التباين</label><input type="range" id="ct" min="30" max="250" value="100"><output id="ctO">100</output></div>
+<div class="row"><label>مؤثرات</label><label style="width:auto"><input type="checkbox" id="gr"> رمادي</label><label style="width:auto"><input type="checkbox" id="iv"> عكس</label></div>
+<div class="row"><label>أداة القص</label><select id="cm"><option value="cut">قص وتحريك</option><option value="copy">نسخ فقط</option></select></div>
+<div class="row"><label>الحفظ</label><select id="fmt"><option value="png">PNG</option><option value="jpeg">JPG</option></select><label style="width:auto"><input type="checkbox" id="exA" checked> مع القياسات</label></div>
+<div id="list"></div>
+</section></main>
+<nav id="tools">
+<button data-m="pan">✋<small>تحريك الشاشة</small></button>
+<button data-m="move">✥<small>نقل قطعة</small></button>
+<button data-m="rot">⟳<small>تدوير</small></button>
+<button data-m="pivot">◎<small>نقطة الدوران</small></button>
+<button data-m="cut">✂<small>قص حر</small></button>
+<button data-m="poly">⬡<small>قص بخطوط</small></button>
+<button id="bClose" style="display:none">✔<small>إتمام القص</small></button>
+<button id="bAdd">➕<small>إضافة زاوية</small></button>
+</nav>
+<script>
+const $=s=>document.querySelector(s),cv=$('#c');let ctx=cv.getContext('2d'),EXP=0;
+const PAL=['#ef4444','#22c55e','#3b82f6','#f59e0b','#a855f7','#06b6d4'],NEED={V:3,W:4,X:4};
+const HINT={pan:'اسحب لتحريك الشاشة • اقرص للتكبير',move:'المس قطعة ثم اسحبها • اسحب نقاط الزوايا لتعديلها',rot:'اسحب لتدوير القطعة المحددة حول نقطة الدوران',pivot:'المس لتحديد نقطة الدوران للقطعة المحددة',cut:'ارسم حول المنطقة بإصبعك لقصها',poly:'المس لتحديد رؤوس الشكل بخطوط مستقيمة، ثم المس أول نقطة أو ✔ لإتمام القص',V:'3 نقاط: الأولى ثم الرأس ثم الثالثة',W:'4 نقاط متتالية، تُقاس الزاويتان عند الداخليتين',X:'خطان: نقطتان لكل خط، وتُقاس الزاوية بينهما'};
+let W=0,H=0,dpr=1,V={s:1,x:0,y:0},layers=[],angles=[],mode='pan',selL=null,selA=null,pend=[],cutPath=null,undo=[],drag=null,pinch=null,q=0;
+const ptrs=new Map();
+const R=()=>{if(!q){q=1;requestAnimationFrame(()=>{q=0;draw()})}};
+const APX={V:[1],W:[1,2],X:[]};
+const wp=a=>a.pts.map(p=>{if(!p.L)return{x:p.x,y:p.y};const w=l2w(p.L,p.u,p.v);return{x:w[0],y:w[1]}});
+const anch=(x,y)=>{const L=hit(x,y);if(L){const w=w2l(L,x,y);return{L,u:w[0],v:w[1]}}return{x,y}};
+function pip(P,x,y){let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const a=P[i],b=P[j];if((a[1]>y)!=(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c}return c}
+const w2s=(x,y)=>[x*V.s+V.x,y*V.s+V.y],s2w=(x,y)=>[(x-V.x)/V.s,(y-V.y)/V.s];
+const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d',{willReadFrequently:true});return c};
+function resize(){dpr=devicePixelRatio||1;const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr;R()}
+addEventListener('resize',resize);
+function l2w(L,u,v){const c=Math.cos(L.r),s=Math.sin(L.r),dx=L.x+u-L.px,dy=L.y+v-L.py;return[L.px+dx*c-dy*s,L.py+dx*s+dy*c]}
+function w2l(L,X,Y){const c=Math.cos(-L.r),s=Math.sin(-L.r),dx=X-L.px,dy=Y-L.py;return[L.px+dx*c-dy*s-L.x,L.py+dx*s+dy*c-L.y]}
+function hit(X,Y){for(let i=layers.length-1;i>=0;i--){const L=layers[i],[u,v]=w2l(L,X,Y);if(u>=0&&v>=0&&u<L.cv.width&&v<L.cv.height){if(L.cv.getContext('2d').getImageData(u|0,v|0,1,1).data[3]>10)return L}}return null}
+function setPivot(L,wx,wy){const dx=wx-L.px,dy=wy-L.py,c=Math.cos(L.r),s=Math.sin(L.r);L.x+=dx-(dx*c+dy*s);L.y+=dy-(-dx*s+dy*c);L.px=wx;L.py=wy}
+function fit(){if(!layers.length)return;let a=1e9,b=1e9,c=-1e9,d=-1e9;for(const L of layers)for(const[u,v]of[[0,0],[L.cv.width,0],[0,L.cv.height],[L.cv.width,L.cv.height]]){const p=l2w(L,u,v);a=Math.min(a,p[0]);b=Math.min(b,p[1]);c=Math.max(c,p[0]);d=Math.max(d,p[1])}
+V.s=Math.min(W/(c-a),H/(d-b))*.92;V.x=W/2-(a+c)/2*V.s;V.y=H/2-(b+d)/2*V.s;R()}
+async function addFiles(fs){for(const f of fs){try{const b=await createImageBitmap(f);const k=Math.min(1,4096/Math.max(b.width,b.height)),w=Math.round(b.width*k),h=Math.round(b.height*k),c=mk(w,h);c.getContext('2d').drawImage(b,0,0,w,h);
+const off=layers.length?Math.max(...layers.map(l=>l.x+l.cv.width))+40:0,L={cv:c,x:off,y:0,r:0,px:off+w/2,py:h/2,f:{b:100,c:100,g:0,i:0}};layers.push(L);selL=L;if(layers.length==1)fit()}catch(e){alert('تعذر فتح هذه الصورة: '+f.name)}}sync();R()}
+function calc(a){const p=wp(a),it=[];let ln=[],ex=[];
+const dg=(c,u,w)=>{const a1=Math.atan2(u.y-c.y,u.x-c.x),a2=Math.atan2(w.y-c.y,w.x-c.x),d=Math.atan2(Math.sin(a2-a1),Math.cos(a2-a1));return{v:c,a1,d,val:Math.abs(d)*180/Math.PI}};
+if(a.t=='V'){it.push(dg(p[1],p[0],p[2]));ln=[[0,1],[1,2]]}
+else if(a.t=='W'){it.push(dg(p[1],p[0],p[2]),dg(p[2],p[1],p[3]));ln=[[0,1],[1,2],[2,3]]}
+else{ln=[[0,1],[2,3]];const d1={x:p[1].x-p[0].x,y:p[1].y-p[0].y},d2={x:p[3].x-p[2].x,y:p[3].y-p[2].y},den=d1.x*d2.y-d1.y*d2.x;
+if(Math.abs(den)>1e-9){const t=((p[2].x-p[0].x)*d2.y-(p[2].y-p[0].y)*d2.x)/den,i={x:p[0].x+t*d1.x,y:p[0].y+t*d1.y};ex=[[1,i],[3,i]];
+const a1=Math.atan2(d1.y,d1.x),a2=Math.atan2(d2.y,d2.x),d=Math.atan2(Math.sin(a2-a1),Math.cos(a2-a1));it.push({v:i,a1,d,val:Math.abs(d)*180/Math.PI,x:1})}}
+return{it,ln,ex}}
+const vals=a=>calc(a).it.map(t=>t.x?t.val.toFixed(1)+'° / '+(180-t.val).toFixed(1)+'°':t.val.toFixed(1)+'°').join(' ، ')||'—';
+function drawA(a,k){const c=PAL[k%PAL.length],g=calc(a),S=wp(a).map(p=>w2s(p.x,p.y));ctx.lineWidth=2.5;ctx.strokeStyle=c;
+ctx.setLineDash([6,5]);ctx.globalAlpha=.6;for(const[i,t]of g.ex){const e=w2s(t.x,t.y);ctx.beginPath();ctx.moveTo(S[i][0],S[i][1]);ctx.lineTo(e[0],e[1]);ctx.stroke()}
+ctx.setLineDash([]);ctx.globalAlpha=1;
+for(const[i,j]of g.ln){ctx.beginPath();ctx.moveTo(S[i][0],S[i][1]);ctx.lineTo(S[j][0],S[j][1]);ctx.stroke()}
+for(const t of g.it){const v=w2s(t.v.x,t.v.y);ctx.beginPath();ctx.arc(v[0],v[1],26,t.a1,t.a1+t.d,t.d<0);ctx.stroke();
+const m=t.a1+t.d/2,tx=v[0]+Math.cos(m)*50,ty=v[1]+Math.sin(m)*50,s=t.x?t.val.toFixed(1)+'° / '+(180-t.val).toFixed(1)+'°':t.val.toFixed(1)+'°';
+ctx.font='700 14px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=4;ctx.strokeStyle='rgba(0,0,0,.75)';ctx.strokeText(s,tx,ty);ctx.fillStyle='#fff';ctx.fillText(s,tx,ty);ctx.lineWidth=2.5;ctx.strokeStyle=c}
+S.forEach((s,i)=>{const ap=(APX[a.t]||[]).includes(i);ctx.beginPath();ctx.arc(s[0],s[1],ap?11:(a===selA?10:7),0,7);ctx.fillStyle=ap?c:'#fff';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=ap?'#fff':c;ctx.stroke()});
+if(a.t=='X'&&g.it[0]){const v=w2s(g.it[0].v.x,g.it[0].v.y);ctx.beginPath();ctx.arc(v[0],v[1],11,0,7);ctx.fillStyle=c;ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke()}}
+function draw(){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);$('#bClose').style.display=(mode=='poly'&&cutPath&&cutPath.length>=3)?'':'none';
+if(!layers.length){ctx.fillStyle=getComputedStyle(document.body).color;ctx.globalAlpha=.6;ctx.font='16px system-ui';ctx.textAlign='center';ctx.fillText('اضغط 📂 لرفع صورة',W/2,H/2);ctx.globalAlpha=1}
+for(const L of layers){ctx.setTransform(dpr*V.s,0,0,dpr*V.s,dpr*V.x,dpr*V.y);ctx.translate(L.px,L.py);ctx.rotate(L.r);ctx.translate(-L.px,-L.py);
+ctx.filter=`brightness(${L.f.b}%) contrast(${L.f.c}%) grayscale(${L.f.g?1:0}) invert(${L.f.i?1:0})`;ctx.drawImage(L.cv,L.x,L.y);ctx.filter='none';
+if(L===selL&&!EXP){ctx.lineWidth=2/V.s;ctx.strokeStyle='#f59e0b';ctx.setLineDash([6/V.s,4/V.s]);ctx.strokeRect(L.x,L.y,L.cv.width,L.cv.height);ctx.setLineDash([])}}
+ctx.setTransform(dpr,0,0,dpr,0,0);
+if(selL&&!EXP){const p=w2s(selL.px,selL.py);ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p[0],p[1],9,0,7);ctx.moveTo(p[0]-15,p[1]);ctx.lineTo(p[0]+15,p[1]);ctx.moveTo(p[0],p[1]-15);ctx.lineTo(p[0],p[1]+15);ctx.stroke()}
+if(!EXP||$('#exA').checked)angles.forEach(drawA);
+if(pend.length&&!EXP){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();pend.forEach((p,i)=>{const s=w2s(p.x,p.y);i?ctx.lineTo(s[0],s[1]):ctx.moveTo(s[0],s[1])});ctx.stroke();pend.forEach(p=>{const s=w2s(p.x,p.y);ctx.beginPath();ctx.arc(s[0],s[1],6,0,7);ctx.fillStyle='#f59e0b';ctx.fill()})}
+if(cutPath&&!EXP){ctx.strokeStyle='#facc15';ctx.lineWidth=2.5;ctx.setLineDash([7,5]);ctx.beginPath();cutPath.forEach((p,i)=>{const s=w2s(p[0],p[1]);i?ctx.lineTo(s[0],s[1]):ctx.moveTo(s[0],s[1])});ctx.stroke();ctx.setLineDash([]);if(mode=='poly')cutPath.forEach((p,i)=>{const s=w2s(p[0],p[1]);ctx.beginPath();ctx.arc(s[0],s[1],i?5:10,0,7);ctx.fillStyle=i?'#facc15':'#f59e0b';ctx.fill()})}}
+function hHit(x,y){for(let k=angles.length-1;k>=0;k--){const a=angles[k],P=wp(a);
+if(a.t=='X'){const g=calc(a);if(g.it[0]){const s=w2s(g.it[0].v.x,g.it[0].v.y);if(Math.hypot(s[0]-x,s[1]-y)<22)return{a,i:-1,ap:1}}}
+for(let i=P.length-1;i>=0;i--){const s=w2s(P[i].x,P[i].y);if(Math.hypot(s[0]-x,s[1]-y)<20)return{a,i,ap:(APX[a.t]||[]).includes(i)?1:0}}}return null}
+function finishCut(){const P=cutPath;cutPath=null;if(!P||P.length<3)return;const T=hit(P[0][0],P[0][1])||selL||layers[layers.length-1];if(!T)return;
+const lp=P.map(p=>w2l(T,p[0],p[1])),us=lp.map(p=>p[0]),vs=lp.map(p=>p[1]);
+const u0=Math.max(0,Math.floor(Math.min(...us))),v0=Math.max(0,Math.floor(Math.min(...vs))),u1=Math.min(T.cv.width,Math.ceil(Math.max(...us))),v1=Math.min(T.cv.height,Math.ceil(Math.max(...vs))),bw=u1-u0,bh=v1-v0;if(bw<3||bh<3)return;
+const nc=mk(bw,bh),n=nc.getContext('2d');n.beginPath();lp.forEach((p,i)=>n[i?'lineTo':'moveTo'](p[0]-u0,p[1]-v0));n.closePath();n.clip();n.drawImage(T.cv,-u0,-v0);
+let bk=null;const t=T.cv.getContext('2d');
+if($('#cm').value=='cut'){bk=mk(T.cv.width,T.cv.height);bk.getContext('2d').drawImage(T.cv,0,0);t.save();t.globalCompositeOperation='destination-out';t.beginPath();lp.forEach((p,i)=>t[i?'lineTo':'moveTo'](p[0],p[1]));t.closePath();t.fill();t.restore()}
+const N={cv:nc,x:T.x+u0,y:T.y+v0,r:T.r,px:T.px,py:T.py,f:{...T.f}};const c=l2w(N,bw/2,bh/2);setPivot(N,c[0],c[1]);layers.push(N);selL=N;const mvd=[];if(bk)for(const a of angles)for(const p of a.pts)if(p.L===T&&pip(lp,p.u,p.v)){mvd.push([p,p.u,p.v]);p.L=N;p.u-=u0;p.v-=v0}
+undo.push(()=>{layers.splice(layers.indexOf(N),1);if(bk){t.clearRect(0,0,T.cv.width,T.cv.height);t.drawImage(bk,0,0)}selL=T;for(const[p,u,v]of mvd){p.L=T;p.u=u;p.v=v}});setMode('move');sync()}
+function down(x,y){const[wx,wy]=s2w(x,y);if(selL&&(mode=='rot'||mode=='pivot')){const p=w2s(selL.px,selL.py);if(Math.hypot(p[0]-x,p[1]-y)<24){drag={t:'pv',L:selL,o:{x:selL.x,y:selL.y,px:selL.px,py:selL.py}};return}}
+if(!['cut','poly','rot','pivot'].includes(mode)&&!pend.length){const h=hHit(x,y);if(h){selA=h.a;selL=null;drag={t:h.ap?'ha':'h',a:h.a,i:h.i,o:h.a.pts.map(p=>({...p})),P:wp(h.a),wx,wy};R();return}}
+if(mode=='pan'){drag={t:'pan',x,y,vx:V.x,vy:V.y}}
+else if(mode=='move'){const L=hit(wx,wy);if(L){selL=L;selA=null;sync();drag={t:'mv',L,wx,wy,o:{x:L.x,y:L.y,px:L.px,py:L.py}}}else drag={t:'pan',x,y,vx:V.x,vy:V.y}}
+else if(mode=='rot'){const L=selL||hit(wx,wy);if(L){selL=L;drag={t:'rt',L,a0:Math.atan2(wy-L.py,wx-L.px),r0:L.r}}}
+else if(mode=='pivot'){const L=selL||hit(wx,wy);if(L){selL=L;const o={x:L.x,y:L.y,px:L.px,py:L.py};setPivot(L,wx,wy);undo.push(()=>Object.assign(L,o))}}
+else if(mode=='cut'){cutPath=[[wx,wy]];drag={t:'cut'}}
+else if(mode=='poly'){if(!cutPath)cutPath=[[wx,wy]];else{const f=w2s(cutPath[0][0],cutPath[0][1]);if(cutPath.length>=3&&Math.hypot(f[0]-x,f[1]-y)<24)finishCut();else cutPath.push([wx,wy])}}
+else if(NEED[mode]){pend.push({x:wx,y:wy});$('#hint').textContent=HINT[mode]+' ('+pend.length+'/'+NEED[mode]+')';if(pend.length==NEED[mode]){const a={t:mode,pts:pend.map(p=>anch(p.x,p.y))};angles.push(a);selA=a;selL=null;undo.push(()=>{angles.splice(angles.indexOf(a),1);selA=null});list();setMode('move')}}
+R()}
+function move(x,y){if(!drag)return;const[wx,wy]=s2w(x,y);
+if(drag.t=='pan'){V.x=drag.vx+x-drag.x;V.y=drag.vy+y-drag.y}
+else if(drag.t=='h'){drag.a.pts[drag.i]={x:wx,y:wy};list()}
+else if(drag.t=='ha'){const dx=wx-drag.wx,dy=wy-drag.wy;drag.a.pts=drag.P.map(p=>({x:p.x+dx,y:p.y+dy}));list()}
+else if(drag.t=='mv'){const d=drag,L=d.L,dx=wx-d.wx,dy=wy-d.wy;L.x=d.o.x+dx;L.y=d.o.y+dy;L.px=d.o.px+dx;L.py=d.o.py+dy}
+else if(drag.t=='rt'){const L=drag.L;L.r=drag.r0+Math.atan2(wy-L.py,wx-L.px)-drag.a0;sync()}
+else if(drag.t=='pv'){setPivot(drag.L,wx,wy)}
+else if(drag.t=='cut'){const l=cutPath[cutPath.length-1];if(Math.hypot(wx-l[0],wy-l[1])*V.s>3)cutPath.push([wx,wy])}
+R()}
+function up(){const d=drag;drag=null;if(!d)return;
+if(d.t=='cut')finishCut();
+else if(d.t=='mv'){const L=d.L,o=d.o;undo.push(()=>Object.assign(L,o))}
+else if(d.t=='pv'){const L=d.L,o=d.o;undo.push(()=>Object.assign(L,o))}
+else if(d.t=='rt'){const L=d.L,r=d.r0;undo.push(()=>{L.r=r;sync()})}
+else if(d.t=='h'||d.t=='ha'){const a=d.a,o=d.o;if(d.t=='h'){const p=a.pts[d.i];if(!p.L)a.pts[d.i]=anch(p.x,p.y)}else a.pts=a.pts.map(p=>p.L?p:anch(p.x,p.y));undo.push(()=>{a.pts=o;list()})}
+R()}
+cv.addEventListener('pointerdown',e=>{$('#addMenu').style.display='none';cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.offsetX,e.offsetY]);
+if(ptrs.size==2){drag=null;cutPath=null;const[a,b]=[...ptrs.values()],m=[(a[0]+b[0])/2,(a[1]+b[1])/2];pinch={d0:Math.hypot(a[0]-b[0],a[1]-b[1])||1,s0:V.s,w:s2w(m[0],m[1])};return}
+if(ptrs.size==1)down(e.offsetX,e.offsetY)});
+cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,[e.offsetX,e.offsetY]);
+if(pinch&&ptrs.size>=2){const[a,b]=[...ptrs.values()],m=[(a[0]+b[0])/2,(a[1]+b[1])/2];V.s=Math.min(60,Math.max(.03,pinch.s0*Math.hypot(a[0]-b[0],a[1]-b[1])/pinch.d0));V.x=m[0]-pinch.w[0]*V.s;V.y=m[1]-pinch.w[1]*V.s;R();return}
+move(e.offsetX,e.offsetY)});
+const end=e=>{if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);if(pinch){if(ptrs.size<2)pinch=null;return}up()};
+cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
+cv.addEventListener('wheel',e=>{e.preventDefault();const w=s2w(e.offsetX,e.offsetY);V.s=Math.min(60,Math.max(.03,V.s*Math.exp(-e.deltaY*.0015)));V.x=e.offsetX-w[0]*V.s;V.y=e.offsetY-w[1]*V.s;R()},{passive:false});
+function setMode(m){mode=m;pend=[];cutPath=null;document.querySelectorAll('#tools button').forEach(b=>b.classList.toggle('on',b.dataset.m==m));$('#hint').textContent=HINT[m];$('#bAdd').classList.toggle('on',!!NEED[m]);$('#addMenu').style.display='none';R()}
+document.querySelectorAll('#tools button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+const act=()=>selL||layers[layers.length-1];
+function sync(){const L=act();if(!L)return;$('#rot').value=Math.round(L.r*180/Math.PI);$('#rotO').textContent=$('#rot').value+'°';$('#br').value=L.f.b;$('#brO').textContent=L.f.b;$('#ct').value=L.f.c;$('#ctO').textContent=L.f.c;$('#gr').checked=!!L.f.g;$('#iv').checked=!!L.f.i}
+$('#rot').oninput=e=>{const L=act();if(L){L.r=e.target.value*Math.PI/180;$('#rotO').textContent=e.target.value+'°';R()}};
+$('#br').oninput=e=>{const L=act();if(L){L.f.b=+e.target.value;$('#brO').textContent=e.target.value;R()}};
+$('#ct').oninput=e=>{const L=act();if(L){L.f.c=+e.target.value;$('#ctO').textContent=e.target.value;R()}};
+$('#gr').onchange=e=>{const L=act();if(L){L.f.g=e.target.checked?1:0;R()}};
+$('#iv').onchange=e=>{const L=act();if(L){L.f.i=e.target.checked?1:0;R()}};
+function list(){$('#list').innerHTML=angles.map((a,i)=>`<div data-i="${i}" class="${a===selA?'s':''}"><span style="color:${PAL[i%PAL.length]}">● ${a.t}</span><b>${vals(a)}</b><span data-x="${i}">✕</span></div>`).join('')}
+$('#list').onclick=e=>{const x=e.target.dataset.x,d=e.target.closest('[data-i]');if(x!=null){const a=angles.splice(+x,1)[0];undo.push(()=>{angles.splice(+x,0,a)});if(selA===a)selA=null}else if(d){selA=angles[+d.dataset.i];selL=null}list();R()};
+$('#bOpen').onclick=()=>$('#f').click();$('#f').onchange=e=>{addFiles([...e.target.files]);e.target.value=''};
+$('#bPanel').onclick=()=>{$('#panel').classList.toggle('open');sync();list()};
+$('#bClose').onclick=()=>{finishCut()};
+$('#bUndo').onclick=()=>{const u=undo.pop();if(u){u();list();sync();R()}};
+$('#bDel').onclick=()=>{if(selA){const i=angles.indexOf(selA),a=selA;angles.splice(i,1);selA=null;undo.push(()=>angles.splice(i,0,a));list()}else if(selL&&layers.length){const i=layers.indexOf(selL),L=selL;layers.splice(i,1);selL=null;undo.push(()=>layers.splice(i,0,L))}R()};
+async function exportImg(){if(!layers.length)return alert('ارفع صورة أولًا');
+let a=1e9,b=1e9,c=-1e9,d=-1e9;for(const L of layers)for(const[u,v]of[[0,0],[L.cv.width,0],[0,L.cv.height],[L.cv.width,L.cv.height]]){const p=l2w(L,u,v);a=Math.min(a,p[0]);b=Math.min(b,p[1]);c=Math.max(c,p[0]);d=Math.max(d,p[1])}
+const f=Math.min(1,4096/Math.max(c-a,d-b)),pw=Math.max(1,Math.round((c-a)*f)),ph=Math.max(1,Math.round((d-b)*f)),u=Math.max(1,Math.max(pw,ph)/1000);
+const oc=document.createElement('canvas');oc.width=pw;oc.height=ph;
+const sv={ctx,W,H,dpr,V,selA};ctx=oc.getContext('2d');W=pw/u;H=ph/u;dpr=u;V={s:f/u,x:-a*f/u,y:-b*f/u};selA=null;EXP=1;
+try{draw()}finally{({ctx,W,H,dpr,V,selA}=sv);EXP=0;R()}
+const fm=$('#fmt').value;let out=oc;
+if(fm=='jpeg'){out=document.createElement('canvas');out.width=pw;out.height=ph;const g=out.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,pw,ph);g.drawImage(oc,0,0)}
+out.toBlob(async bl=>{const name='angles-'+Date.now()+'.'+(fm=='jpeg'?'jpg':'png'),file=new File([bl],name,{type:bl.type});
+if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'Angle Lab'});return}catch(e){if(e.name=='AbortError')return}}
+const url=URL.createObjectURL(bl),el=document.createElement('a');el.href=url;el.download=name;document.body.append(el);el.click();el.remove();setTimeout(()=>URL.revokeObjectURL(url),6000)},fm=='jpeg'?'image/jpeg':'image/png',.92)}
+$('#bSave').onclick=exportImg;
+$('#bCam').onclick=()=>$('#fc').click();$('#fc').onchange=e=>{addFiles([...e.target.files]);e.target.value=''};
+addEventListener('dragover',e=>e.preventDefault());addEventListener('drop',e=>{e.preventDefault();addFiles([...e.dataTransfer.files].filter(f=>f.type.startsWith('image/')))});
+let dip=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e;$('#bInst').style.display=''});
+$('#bInst').onclick=async()=>{if(dip){dip.prompt();dip=null;$('#bInst').style.display='none'}};
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+$('#bAdd').onclick=()=>{if(NEED[mode]){setMode('move');return}const m=$('#addMenu');m.style.display=m.style.display=='flex'?'none':'flex'};
+document.querySelectorAll('#addMenu button').forEach(b=>b.onclick=()=>setMode(b.dataset.t));
+resize();setMode('pan');
+</script></body></html>
